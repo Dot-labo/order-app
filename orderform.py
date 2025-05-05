@@ -10,16 +10,16 @@ from oauth2client.service_account import ServiceAccountCredentials
 SPREADSHEET_KEY = "1J7q1y6q6NH0YxF59S6HC0hUhVAlKzyJyQiaC9CIlJqg"
 DROPBOX_REQUEST_URL = "https://www.dropbox.com/request/bMH4Sahb8uTyymHuhgJJ"
 
-    # Googleスプレッドシート接続
+# Googleスプレッドシート接続
 def connect_to_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
+
     # 環境変数 "GOOGLE_CREDS_JSON" に格納された JSON 文字列を辞書として読み込み
     creds_dict = json.loads(os.environ["GOOGLE_CREDS_JSON"])
-    
+
     # Google 認証情報を作成
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    
+
     # 認証してスプレッドシートにアクセス
     client = gspread.authorize(creds)
     return client.open_by_key(SPREADSHEET_KEY).worksheet("注文リスト")
