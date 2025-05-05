@@ -3,10 +3,31 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta
 
-# 設定
-CREDS_FILE = "c:/Users/ys-ot/pythonprog/grand-aileron-428101-n9-f4a26ef06f7e.json"
+import os
+import json
+from oauth2client.service_account import ServiceAccountCredentials
+
 SPREADSHEET_KEY = "1J7q1y6q6NH0YxF59S6HC0hUhVAlKzyJyQiaC9CIlJqg"
 DROPBOX_REQUEST_URL = "https://www.dropbox.com/request/bMH4Sahb8uTyymHuhgJJ"
+
+def connect_to_sheet():
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+
+    # 環境変数からJSON文字列を取得して辞書化
+    creds_dict = json.loads(os.environ["GOOGLE_CREDS_JSON"])
+
+    # 辞書形式で認証
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    
+    client = gspread.authorize(creds)
+    return client.open_by_key(SPREADSHEET_KEY)
+
+# 設定
+# CREDS_FILE = "c:/Users/ys-ot/pythonprog/grand-aileron-428101-n9-f4a26ef06f7e.json"
+
 
 # Googleスプレッドシート接続
 def connect_to_sheet():
