@@ -1,5 +1,6 @@
 import streamlit as st
 import gspread
+import pytz
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta
 
@@ -147,6 +148,8 @@ if submit:
         if has_bento_order or has_remarks:
             try:
                 sheet = connect_to_sheet()
+                # 日本時間（JST）を取得
+                jst = pytz.timezone('Asia/Tokyo')
                 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 rows_to_append = []
