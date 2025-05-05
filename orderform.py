@@ -36,7 +36,7 @@ st.set_page_config(page_title="宅配お弁当注文", layout="wide")
 if time_period == "AM":
     st.markdown(
         """
-    <h1 style="color: black; background-color: #E0F7FA; padding: 10px; border-radius: 5px;">
+    <h1 style="color: black; background-color: #E0F7FA; padding: 10px; border-radius: 5px;font-size: 24px;">
         宅配お弁当注文システム（午前用）
     </h1>
         """,
@@ -45,7 +45,7 @@ if time_period == "AM":
 else:  # PM
     st.markdown(
         """
-    <h1 style="color: black; background-color: #FFE5B4; padding: 10px; border-radius: 5px;">
+    <h1 style="color: black; background-color: #FFE5B4; padding: 10px; border-radius: 5px;font-size: 24px;">
         宅配お弁当注文システム（午後用）
     </h1>
         """,
@@ -150,7 +150,7 @@ if submit:
                 sheet = connect_to_sheet()
                 # 日本時間（JST）を取得
                 jst = pytz.timezone('Asia/Tokyo')
-                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                now_str = datetime.now(jst).strftime("%Y-%m-%d %H:%M:%S")
 
                 rows_to_append = []
 
