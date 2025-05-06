@@ -101,33 +101,32 @@ else:  # PM
 
 columns = st.columns(3)
 bento_quantities = {}
-for i, bento in enumerate(bento_types):
-    col = columns[i % 3]
-    with col:
-        # 先にラベルを表示
-        current_qty = st.session_state.get(bento, 0)
-        if current_qty > 0:
-            st.markdown(
-                f"<div style='color:red; font-weight:bold; font-size:18px;'>{bento}: {current_qty}個</div>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"<div style='color:gray; font-size:18px;'>{bento}: {current_qty}個</div>",
-                unsafe_allow_html=True
-            )
+for bento in bento_types:
+    current_qty = st.session_state.get(bento, 0)
 
-        # その後に数値入力
-        qty = st.number_input(
-            f"{bento}",
-            min_value=0,
-            max_value=20,
-            step=1,
-            value=current_qty,
-            key=bento,
-            label_visibility="collapsed"
+    # ラベル表示（色つき）
+    if current_qty > 0:
+        st.markdown(
+            f"<div style='color:red; font-weight:bold; font-size:18px;'>{bento}: {current_qty}個</div>",
+            unsafe_allow_html=True
         )
-        bento_quantities[bento] = qty
+    else:
+        st.markdown(
+            f"<div style='color:gray; font-size:18px;'>{bento}: {current_qty}個</div>",
+            unsafe_allow_html=True
+        )
+
+    # 数量入力欄（ラベル非表示）
+    qty = st.number_input(
+        f"{bento}",
+        min_value=0,
+        max_value=20,
+        step=1,
+        value=current_qty,
+        key=bento,
+        label_visibility="collapsed"
+    )
+    bento_quantities[bento] = qty
 
 remarks = st.text_area("備考（自由記入欄）", placeholder="例: 白米は1個大盛、1個普通です")
 
