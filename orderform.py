@@ -12,18 +12,12 @@ SPREADSHEET_KEY = "1J7q1y6q6NH0YxF59S6HC0hUhVAlKzyJyQiaC9CIlJqg"
 DROPBOX_REQUEST_URL = "https://www.dropbox.com/request/bMH4Sahb8uTyymHuhgJJ"
 
 # Googleスプレッドシート接続
-def connect_to_sheet():
+def connect_to_sheet(sheet_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-    # 環境変数 "GOOGLE_CREDS_JSON" に格納された JSON 文字列を辞書として読み込み
     creds_dict = json.loads(os.environ["GOOGLE_CREDS_JSON"])
-
-    # Google 認証情報を作成
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-
-    # 認証してスプレッドシートにアクセス
     client = gspread.authorize(creds)
-    return client.open_by_key(SPREADSHEET_KEY).worksheet("注文リスト")
+    return client.open_by_key(SPREADSHEET_KEY).worksheet(sheet_name)
 
 # ======== 担当者名をURLから取得 ========
 query_params = st.query_params
@@ -56,12 +50,12 @@ if not car_info:
     st.warning("URLに ?car=配送車情報 を付けてアクセスしてください。")
     st.stop()
 
-st.markdown(f"#### 配送車情報：{car_info}")
+st.markdown(f"#### 担当者：{car_info}")
 st.markdown(f"#### 時間帯：{time_period}")
 
 customer_name = st.text_input("お客様のお名前", placeholder="例: 山田 太郎")
 
-order_type = st.radio("注文タイプを選択してください", ["注文", "集金", "その他"])
+order_type = st.radio("注文タイプを選択してください", ["注文", "集金", "キャンセル", "変更", "その他"])
 
 # 日本標準時 (JST)
 JST = timezone(timedelta(hours=9))
@@ -84,7 +78,7 @@ if time_period == "AM":
     ])
     st.markdown("##### お弁当の種類と数量")
     bento_types = [
-        "ヘルシー", "デラックス", "ヘルシーおかず", "デラックスおかず","唐揚げ弁当", "唐揚げスペシャル弁当", "唐揚げ南蛮弁当","ブラックカレープレーン", "カツカレー", "ハンバーグカレー",
+        "ヘルシー", "デラックス", "ヘルシーおかず", "デラックスおかず","唐揚げ弁当", "唐揚げスペシャル弁当", "唐揚げ南蛮弁当","ブラックカレープレーン", "カツカレー", "ハンバーグカレー","スペシャルカレー","カレー大盛",
         "野菜", "うどん3種", "うどん2種", "うどん1種","普通食S", "塩分調整食S", "普通食M","白米", "雑穀米","サワラ", "マス", "イワシ", "ブリ", "サバ",
         "親子丼", "カツ丼", "牛丼","冷凍弁当","ヘルシーチケット", "デラックスチケット"
     ]
@@ -149,12 +143,12 @@ if submit:
 
         if has_bento_order or has_remarks:
             try:
-                sheet = connect_to_sheet()
-                # 日本時間（JST）を取得
+                # AM/PMでシート名を切り替え
+                sheet_name = "AMリスト" if time_period == "AM" else "PMリスト"
+                sheet = connect_to_sheet(sheet_name)
                 now_str = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
 
                 rows_to_append = []
-
                 for bento, qty in bento_quantities.items():
                     if qty > 0:
                         row_data = [
@@ -171,7 +165,6 @@ if submit:
                         ]
                         rows_to_append.append(row_data)
 
-                # 備考だけの場合でも行を1つ追加（注文なしだが備考あり）
                 if not rows_to_append and has_remarks:
                     row_data = [
                         now_str,
@@ -187,7 +180,18 @@ if submit:
                     ]
                     rows_to_append.append(row_data)
 
+                # 末尾に追加
                 sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
+
+                # 並び替え処理（1行目はタイトル、2行目以降を逆順に）
+                all_values = sheet.get_all_values()
+                if len(all_values) > 2:
+                    title = all_values[0]
+                    data = all_values[1:]
+                    data.reverse()
+                    sheet.clear()
+                    sheet.append_row(title)
+                    sheet.append_rows(data)
                 st.success("注文が正常に送信されました！")
             except Exception as e:
                 st.error("注文の送信中にエラーが発生しました。")
