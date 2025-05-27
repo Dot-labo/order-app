@@ -2,7 +2,7 @@ import streamlit as st
 import gspread
 import pytz
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import os
 import json
@@ -63,9 +63,11 @@ customer_name = st.text_input("お客様のお名前", placeholder="例: 山田 
 
 order_type = st.radio("注文タイプを選択してください", ["注文", "集金", "その他"])
 
+# 日本標準時 (JST)
+JST = timezone(timedelta(hours=9))
 
 # 配達日（date_input の表示そのまま）
-delivery_date = st.date_input("配達日", value=datetime.now().date() + timedelta(days=1))
+delivery_date = st.date_input("配達日", value=datetime.now(JST).date() + timedelta(days=1))
 
 # 日本語曜日変換
 weekdays_ja = ["月", "火", "水", "木", "金", "土", "日"]
@@ -149,8 +151,7 @@ if submit:
             try:
                 sheet = connect_to_sheet()
                 # 日本時間（JST）を取得
-                jst = pytz.timezone('Asia/Tokyo')
-                now_str = datetime.now(jst).strftime("%Y-%m-%d %H:%M:%S")
+                now_str = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
 
                 rows_to_append = []
 
