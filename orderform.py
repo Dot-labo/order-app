@@ -3,10 +3,21 @@ import gspread
 import pytz
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta, timezone
-
 import os
 import json
-from oauth2client.service_account import ServiceAccountCredentials
+
+st.set_page_config(page_title="宅配お弁当注文", layout="wide")
+
+# 文字化け対策（文字コードとフォントの明示）
+st.markdown("""
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
+<style>
+body, html, .stApp {
+    font-family: 'Noto Sans JP', 'Meiryo', sans-serif;
+}
+</style>
+""", unsafe_allow_html=True)
 
 SPREADSHEET_KEY = "1J7q1y6q6NH0YxF59S6HC0hUhVAlKzyJyQiaC9CIlJqg"
 DROPBOX_REQUEST_URL = "https://www.dropbox.com/request/bMH4Sahb8uTyymHuhgJJ"
