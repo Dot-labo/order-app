@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import os
 import json
 
-st.set_page_config(page_title="宅配お弁当注文", layout="wide")
+st.set_page_config(page_title="宅配お弁当注文", layout="wide")  # ←ここだけでOK
 
 # 文字化け対策（文字コードとフォントの明示）
 st.markdown("""
@@ -36,7 +36,6 @@ car_info = query_params.get("car", "")  # 例：?car=1234
 time_period = query_params.get("time", "PM")  # 例：?time=AM または ?time=PM
 
 # Streamlit UI
-st.set_page_config(page_title="宅配お弁当注文", layout="wide")
 
 if time_period == "AM":
     st.markdown(
