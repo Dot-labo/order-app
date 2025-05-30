@@ -193,12 +193,13 @@ if submit:
                 # 末尾に追加
                 sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
 
-                # 並び替え処理（1行目はタイトル、2行目以降を逆順に）
+                # 並び替え処理（1行目はタイトル、2行目以降をタイムスタンプ降順でソート）
                 all_values = sheet.get_all_values()
                 if len(all_values) > 2:
                     title = all_values[0]
                     data = all_values[1:]
-                    data.reverse()
+                    # タイムスタンプ（1列目）で降順ソート
+                    data.sort(key=lambda x: x[0], reverse=True)
                     sheet.clear()
                     sheet.append_row(title)
                     sheet.append_rows(data)
