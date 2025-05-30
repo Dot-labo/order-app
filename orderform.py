@@ -92,7 +92,6 @@ if time_period == "AM":
         "野菜", "うどん3種", "うどん2種", "うどん1種","普通食S", "塩分調整食S", "普通食M","白米", "雑穀米","サワラ", "マス", "イワシ", "ブリ", "サバ",
         "親子丼", "カツ丼", "牛丼","冷凍弁当","ヘルシーチケット", "デラックスチケット"
     ]
-
 else:  # PM
     delivery_course = st.radio("配送コースを選択してください", [
         "三重郡", "四日市", "菰野", "別便", "北勢", "その他"
@@ -102,14 +101,20 @@ else:  # PM
         "普通食S", "塩分調整食S", "普通食M","白米", "雑穀米","サワラ", "マス", "イワシ", "ブリ", "サバ","親子丼", "カツ丼", "牛丼","うどん3種", "うどん2種", "うどん1種","やわらか食", "ムース食","冷凍弁当"
     ]
 
+# セッション履歴の初期化
+if "send_history" not in st.session_state:
+    st.session_state["send_history"] = []
 
+# --- 上部にも送信ボタンを追加（ここで配置） ---
+submit_top = st.button("内容を送信", key="submit_top")
 
+# --- 備考欄をお弁当の種類と数量の下に移動 ---
+remarks = st.text_area("備考（自由記入欄）", placeholder="例: 白米は1個大盛、1個普通です")
 
 columns = st.columns(3)
 bento_quantities = {}
 for bento in bento_types:
     current_qty = st.session_state.get(bento, 0)
-
     # ラベル表示（色つき）
     if current_qty > 0:
         st.markdown(
@@ -121,8 +126,6 @@ for bento in bento_types:
             f"<div style='color:gray; font-size:18px;'>{bento}: {current_qty}個</div>",
             unsafe_allow_html=True
         )
-
-    # 数量入力欄（ラベル非表示）
     qty = st.number_input(
         f"{bento}",
         min_value=0,
@@ -134,26 +137,17 @@ for bento in bento_types:
     )
     bento_quantities[bento] = qty
 
-remarks = st.text_area("備考（自由記入欄）", placeholder="例: 白米は1個大盛、1個普通です")
+# --- 下部の送信ボタン（既存） ---
+submit = st.button("内容を送信", key="submit_bottom")
 
-# st.markdown(f"""
-# 📎 添付資料がある方はこちらからアップロードしてください：  
-# 👉 [Dropboxにファイルをアップロード]({DROPBOX_REQUEST_URL})
-# """)
-
-# dropbox_uploaded = st.checkbox("Dropboxに添付資料をアップロード済み")
-
-submit = st.button("注文を送信")
-
-# 注文送信処理
-if submit:
+# どちらかのボタンが押されたら送信
+if submit or submit_top:
     if customer_name:
         has_bento_order = any(qty > 0 for qty in bento_quantities.values())
         has_remarks = bool(remarks.strip())
 
         if has_bento_order or has_remarks:
             try:
-                # AM/PMでシート名を切り替え
                 sheet_name = "AMリスト" if time_period == "AM" else "PMリスト"
                 sheet = connect_to_sheet(sheet_name)
                 now_str = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
@@ -174,6 +168,8 @@ if submit:
                             remarks
                         ]
                         rows_to_append.append(row_data)
+                        # 履歴にも追加
+                        st.session_state["send_history"].append(row_data)
 
                 if not rows_to_append and has_remarks:
                     row_data = [
@@ -189,20 +185,12 @@ if submit:
                         remarks
                     ]
                     rows_to_append.append(row_data)
+                    st.session_state["send_history"].append(row_data)
 
-                # 末尾に追加
                 sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
 
-                # 並び替え処理（1行目はタイトル、2行目以降をタイムスタンプ降順でソート）
-                all_values = sheet.get_all_values()
-                if len(all_values) > 2:
-                    title = all_values[0]
-                    data = all_values[1:]
-                    # タイムスタンプ（1列目）で降順ソート
-                    data.sort(key=lambda x: x[0], reverse=True)
-                    sheet.clear()
-                    sheet.append_row(title)
-                    sheet.append_rows(data)
+                # 並び替え処理（省略）
+
                 st.success("注文が正常に送信されました！")
             except Exception as e:
                 st.error("注文の送信中にエラーが発生しました。")
@@ -211,3 +199,13 @@ if submit:
             st.warning("お弁当の注文か備考のいずれかを入力してください。")
     else:
         st.warning("お名前を入力してください。")
+
+# --- 送信履歴を表で表示 ---
+if st.session_state["send_history"]:
+    import pandas as pd
+    st.markdown("### 送信履歴（リフレッシュで消えます）")
+    df = pd.DataFrame(
+        st.session_state["send_history"],
+        columns=["タイムスタンプ", "時間帯", "担当者", "お客様名", "注文タイプ", "配送コース", "配達日", "お弁当", "数量", "備考"]
+    )
+    st.dataframe(df, use_container_width=True)
