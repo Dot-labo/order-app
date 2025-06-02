@@ -35,8 +35,63 @@ query_params = st.query_params
 car_info = query_params.get("car", "")  # 例：?car=1234
 time_period = query_params.get("time", "PM")  # 例：?time=AM または ?time=PM
 
-# Streamlit UI
+# --- 管理者切り替え ---
+is_admin = (car_info == "加藤")
+if is_admin:
+    mode = st.radio("画面モードを選択", ["注文入力画面", "管理者画面"], horizontal=True)
+else:
+    mode = "注文入力画面"
 
+# --- 管理者画面 ---
+if mode == "管理者画面":
+    import qrcode
+    import re
+    from io import BytesIO
+
+    st.title("注文用QRコード生成ツール")
+    st.markdown("""
+    ### ❗️入力ルール
+    - **半角英数字のみ** 入力してください（例：Yamamoto）
+    - **日本語・空白・記号は禁止** です（文字化け防止のため）
+    - `time` は AM または PM を選択してください
+    """)
+
+    car = st.text_input("担当者コードを入力（例：Yamamoto）")
+    time = st.radio("時間帯を選択してください", ["AM", "PM"])
+
+    pattern = r'^[A-Za-z0-9]+$'  # 英数字のみ
+
+    # 作成ボタンを追加
+    create_btn = st.button("QRコードを作成", key="create_qr")
+
+    if create_btn:
+        if not car:
+            st.error("車両コードを入力してください。")
+        elif not re.match(pattern, car):
+            st.error("❌ 無効な入力です。car には半角英数字のみ使用できます（記号・空白・日本語は禁止）")
+        else:
+            base_url = "https://order-app-gvl0.onrender.com/"
+            final_url = f"{base_url}?car={car}&time={time}"
+
+            st.markdown("### ✅ 完成URL")
+            st.code(final_url)
+
+            qr = qrcode.make(final_url)
+            buf = BytesIO()
+            qr.save(buf, format="PNG")
+            byte_im = buf.getvalue()
+
+            st.image(byte_im, caption="QRコード", use_container_width=False)
+
+            st.download_button(
+                label="📥 QRコードをダウンロード",
+                data=byte_im,
+                file_name=f"QR_{car}_{time}.png",
+                mime="image/png"
+            )
+    st.stop()  # 管理者画面のみ表示
+
+# --- ここから注文入力画面（通常画面） ---
 if time_period == "AM":
     st.markdown(
         """
