@@ -29,8 +29,13 @@ JST = timezone(timedelta(hours=9))
 def connect_to_sheet(sheet_name):
     """Googleスプレッドシートに接続し、指定されたワークシートオブジェクトを返す"""
     try:
+        # Check if the secret is available in st.secrets
+        if "GOOGLE_CREDS_JSON" not in st.secrets:
+            st.error("Google APIの認証情報が設定されていません。アプリの管理者にお問い合わせください。")
+            st.info("（管理者向け）RenderのEnvironment Variablesに`GOOGLE_CREDS_JSON`というキーで認証情報を設定してください。")
+            return None
+
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        # Streamlit Community Cloudから環境変数を読み込む
         creds_dict_str = st.secrets["GOOGLE_CREDS_JSON"]
         creds_dict = json.loads(creds_dict_str)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
@@ -39,10 +44,13 @@ def connect_to_sheet(sheet_name):
         spreadsheet = client.open("注文デモ")
         return spreadsheet.worksheet(sheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        st.error(f"シート '{sheet_name}' が見つかりません。")
+        st.error(f"Googleスプレッドシート内に '{sheet_name}' という名前のシートが見つかりません。")
+        return None
+    except json.JSONDecodeError:
+        st.error("Google APIの認証情報（JSON）の形式が正しくありません。アプリの管理者にご確認ください。")
         return None
     except Exception as e:
-        st.error(f"スプレッドシートへの接続中にエラーが発生しました: {e}")
+        st.error(f"スプレッドシートへの接続中に予期せぬエラーが発生しました: {e}")
         return None
 
 # ======== URLパラメータから情報を取得 ========
