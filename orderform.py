@@ -8,7 +8,7 @@ import json
 
 st.set_page_config(page_title="宅配お弁当注文", layout="wide")  # ←ここだけでOK
 
-# 文字化け対策（文字コードとフォントの明示）
+# 文字化け対策（文字コードとフォントの明示）a
 st.markdown("""
 <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@ car_info = query_params.get("car", "")  # 例：?car=1234
 time_period = query_params.get("time", "PM")  # 例：?time=AM または ?time=PM
 
 # --- 管理者切り替え ---
-is_admin = (car_info == "加藤")
+is_admin = car_info in ["加藤", "Yasuda"]
 if is_admin:
     mode = st.radio("画面モードを選択", ["注文入力画面", "管理者画面"], horizontal=True)
 else:

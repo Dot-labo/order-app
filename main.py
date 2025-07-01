@@ -53,26 +53,28 @@ def select_file():
 with st.sidebar.expander("管理画面"):
     st.write("ここでは設定を変更できます。")
 
-    # Acrobat.exeのパス選択
-    if st.button("Acrobat.exe のパスを選択"):
-        selected_acrobat_path = select_file()
-        if selected_acrobat_path:
-            st.session_state.acrobat_path = selected_acrobat_path
-            st.success(f"選択された Acrobat.exe のパス: {st.session_state.acrobat_path}")
-
-    # 現在のAcrobat.exeのパスを表示
-    st.write(f"現在の Acrobat.exe のパス: {st.session_state.acrobat_path}")
+    # Acrobat.exe のパスを直接入力
+    st.session_state.acrobat_path = st.text_input(
+        "Acrobat.exe のパスを入力",
+        value=st.session_state.acrobat_path
+    )
 
 # フォルダ選択ボタン
-if st.sidebar.button("フォルダを選択"):
-    selected_folder = select_folder()
-    if selected_folder:
-        st.session_state.folder_path = selected_folder
-        st.success(f"選択されたフォルダ: {st.session_state.folder_path}")
+# if st.sidebar.button("フォルダを選択"):
+#     selected_folder = select_folder()
+#     if selected_folder:
+#         st.session_state.folder_path = selected_folder
+#         st.success(f"選択されたフォルダ: {st.session_state.folder_path}")
 
 # フォルダパスの表示
-folder_path = st.session_state.folder_path
-st.sidebar.write(f"現在のフォルダ: {folder_path}")
+folder_path = st.text_input(
+    "印刷対象フォルダをここにペーストしてください（例：C:/Users/ys-ot/Downloads）",
+    value=st.session_state.folder_path  # セッションステートの値を初期値に
+)
+# 入力が変わったらセッションステートも更新
+st.session_state.folder_path = folder_path
+
+st.sidebar.write(f"現在のフォルダ: {st.session_state.folder_path}")
 
 # 日付削除＆印刷ツール
 if page == "日付削除＆印刷ツール":
@@ -127,8 +129,8 @@ if page == "日付削除＆印刷ツール":
     if st.session_state.print_ready_files:
         # `cleaned_領収書` に限定し、通し番号順にソート
         filtered_files = sorted(
-            [f for f in st.session_state.print_ready_files if "cleaned_領収書" in f],
-            key=lambda x: int(re.search(r'_(\d+)\.pdf$', x).group(1)) if re.search(r'_(\d+)\.pdf$', x) else float('inf')
+            [f for f in st.session_state.print_ready_files if os.path.basename(f).startswith("cleaned_")],
+            key=lambda x: x
         )
         if filtered_files:
             st.write("印刷を実行しますか？")
@@ -141,7 +143,7 @@ if page == "日付削除＆印刷ツール":
                         for i, pdf_file in enumerate(filtered_files, 1):
                             st.write(f"[{i}/{len(filtered_files)}] 印刷中: {pdf_file}")
                             subprocess.Popen([st.session_state.acrobat_path, "/p", "/h", pdf_file])
-                            time.sleep(2)
+                            time.sleep(5)
                             subprocess.run(["taskkill", "/IM", "Acrobat.exe", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                             time.sleep(2)
                         st.success("印刷が完了しました！")
@@ -159,37 +161,42 @@ if page == "日付削除＆印刷ツール":
 elif page == "請求書・明細書印刷ツール":
     st.header("請求書・明細書・領収書印刷ツール")
     st.write("請求書・明細書・領収書 の名前のPDFファイルを通し番号順に印刷します。")
-    if st.button("印刷を実行しますか？"):
-        if folder_path and os.path.isdir(folder_path):
-            try:
-                folder_path_obj = Path(folder_path)
-                pdf_files = sorted(
-                    [f for f in folder_path_obj.glob("*.pdf") if any(keyword in f.name for keyword in ["請求書", "領収書", "明細書"])],
-                    key=lambda f: int(re.search(r'_(\d+)\.pdf$', f.name).group(1)) if re.search(r'_(\d+)\.pdf$', f.name) else float('inf')
-                )
 
-                st.session_state.print_ready_files = [str(pdf_file) for pdf_file in pdf_files]
-                st.write(f"印刷対象PDF: {len(st.session_state.print_ready_files)} 件")
-                st.text("\n".join(st.session_state.print_ready_files))
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("はい"):
-                        try:
-                            for i, pdf_file in enumerate(st.session_state.print_ready_files, 1):
-                                st.write(f"[{i}/{len(st.session_state.print_ready_files)}] 印刷中: {pdf_file}")
-                                subprocess.Popen([st.session_state.acrobat_path, "/p", "/h", pdf_file])
-                                time.sleep(2)
-                                subprocess.run(["taskkill", "/IM", "Acrobat.exe", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                time.sleep(2)
-                            st.success("印刷が完了しました！")
-                            st.session_state.print_ready_files = []  # 印刷リストをリセット
-                        except Exception as e:
-                            st.error(f"印刷中にエラーが発生しました: {e}")
-                with col2:
-                    if st.button("いいえ"):
-                        st.info("印刷をキャンセルしました。")
-                        st.session_state.print_ready_files = []  # 印刷リストをリセット
-            except Exception as e:
-                st.error(f"印刷中にエラーが発生しました: {e}")
-        else:
-            st.error("有効なフォルダパスを入力してください。")
+    # 印刷対象リストがなければ「印刷を実行しますか？」ボタンを表示
+    if not st.session_state.print_ready_files:
+        if st.button("印刷を実行しますか？"):
+            if folder_path and os.path.isdir(folder_path):
+                try:
+                    folder_path_obj = Path(folder_path)
+                    pdf_files = sorted(
+                        [f for f in folder_path_obj.glob("*.pdf") if any(keyword in f.name for keyword in ["請求書", "領収書", "明細書"])],
+                        key=lambda f: int(re.search(r'_(\d+)\.pdf$', f.name).group(1)) if re.search(r'_(\d+)\.pdf$', f.name) else float('inf')
+                    )
+                    st.session_state.print_ready_files = [str(pdf_file) for pdf_file in pdf_files]
+                except Exception as e:
+                    st.error(f"印刷対象PDFの取得中にエラーが発生しました: {e}")
+            else:
+                st.error("有効なフォルダパスを入力してください。")
+
+    # 印刷対象リストがあれば「はい」「いいえ」ボタンを表示
+    if st.session_state.print_ready_files:
+        st.write(f"印刷対象PDF: {len(st.session_state.print_ready_files)} 件")
+        st.text("\n".join(st.session_state.print_ready_files))
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("はい", key="print_invoice"):
+                try:
+                    for i, pdf_file in enumerate(st.session_state.print_ready_files, 1):
+                        st.write(f"[{i}/{len(st.session_state.print_ready_files)}] 印刷中: {pdf_file}")
+                        subprocess.Popen([st.session_state.acrobat_path, "/p", "/h", pdf_file])
+                        time.sleep(2)
+                        subprocess.run(["taskkill", "/IM", "Acrobat.exe", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        time.sleep(2)
+                    st.success("印刷が完了しました！")
+                    st.session_state.print_ready_files = []  # 印刷リストをリセット
+                except Exception as e:
+                    st.error(f"印刷中にエラーが発生しました: {e}")
+        with col2:
+            if st.button("いいえ", key="cancel_invoice"):
+                st.info("印刷をキャンセルしました。")
+                st.session_state.print_ready_files = []  # 印刷リストをリセット
